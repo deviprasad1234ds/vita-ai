@@ -282,10 +282,6 @@
 
 <script>
     // =============================================
-    // GROQ API KEY (Replace with yours)
-    // =============================================
-
-    // =============================================
     // APP STATE (LocalStorage)
     // =============================================
     let freeScansLeft = parseInt(localStorage.getItem('vita_free_scans') || '5');
@@ -373,77 +369,21 @@
     }
 
     // =============================================
-    // GROQ AI ANALYSIS (No Hardcoded Lists)
+    // GROQ AI ANALYSIS via Netlify Function (Secure)
     // =============================================
-    async function async function analyzeWithGroq(ingredients) {
-  const response = await fetch('/.netlify/functions/groq', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ingredients })
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API error: ${response.status}`);
-  }
-  
-  return await response.json();
-}(ingredients) {
-        const prompt = `You are VITA AI, a forensic food safety expert. Analyze these ingredients using your knowledge of global food safety regulations.
-
-Ingredients: ${ingredients}
-
-Use your knowledge of:
-- EFSA (European Food Safety Authority) opinions, bans, and restrictions
-- FDA (US Food and Drug Administration) GRAS status, bans, and warnings
-- WHO IARC carcinogen classifications
-- Endocrine Society's research on endocrine disruptors
-- Peer-reviewed food safety literature (Nigg, etc.)
-- FSSAI (India) regulations
-- Health Canada regulations
-
-For EACH harmful ingredient you identify, provide:
-1. The exact ingredient name
-2. Why it's harmful (scientific reason)
-3. Status in EU, USA, India (BANNED, RESTRICTED, PERMITTED, or WARNING REQUIRED)
-4. Source citation (e.g., EFSA 2021, Nigg 2012, IARC Group 2B)
-
-Also identify safe ingredients (no known concerns).
-
-Calculate safety score (0-10):
-- 0-3: RED — multiple harmful ingredients, carcinogens, endocrine disruptors
-- 4-6: YELLOW — some concerns, limited evidence
-- 7-10: GREEN — no harmful ingredients detected
-
-Return ONLY valid JSON in this exact format:
-{
-  "harmful_ingredients": [
-    {"name": "...", "reason": "...", "eu_status": "...", "us_status": "...", "india_status": "...", "source": "..."}
-  ],
-  "safe_ingredients": ["...", "..."],
-  "tier": "RED/YELLOW/GREEN",
-  "score": 0.0,
-  "summary": "Brief summary of findings"
-}`;
-
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${GROQ_API_KEY}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.1,
-                response_format: { type: "json_object" }
-            })
+    async function analyzeWithGroq(ingredients) {
+        const response = await fetch('/.netlify/functions/groq', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ingredients })
         });
-
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-        const data = await response.json();
-        const content = data.choices[0].message.content;
-        return JSON.parse(content);
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || `API error: ${response.status}`);
+        }
+        
+        return await response.json();
     }
 
     async function performAnalysis() {
