@@ -376,7 +376,20 @@
     // =============================================
     // GROQ AI ANALYSIS (No Hardcoded Lists)
     // =============================================
-    async function analyzeWithGroq(ingredients) {
+    async function async function analyzeWithGroq(ingredients) {
+  const response = await fetch('/.netlify/functions/groq', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ingredients })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `API error: ${response.status}`);
+  }
+  
+  return await response.json();
+}(ingredients) {
         const prompt = `You are VITA AI, a forensic food safety expert. Analyze these ingredients using your knowledge of global food safety regulations.
 
 Ingredients: ${ingredients}
