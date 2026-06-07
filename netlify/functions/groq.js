@@ -1,5 +1,5 @@
 // netlify/functions/groq.js
-// This is your secure backend — API key never exposed to users
+// Secure backend for Truth2Eat Scanner — API key never exposed to users
 
 exports.handler = async (event) => {
   // Only accept POST requests
@@ -11,8 +11,8 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Get ingredients from the request
-    const { ingredients } = JSON.parse(event.body);
+    // Get ingredients and user profile from the request
+    const { ingredients, userProfile } = JSON.parse(event.body);
     
     if (!ingredients) {
       return {
@@ -21,7 +21,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // Your API key is stored in Netlify environment variables
+    // Your API key is stored in Netlify environment variables (never in code)
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
     
     if (!GROQ_API_KEY) {
@@ -31,28 +31,32 @@ exports.handler = async (event) => {
       };
     }
 
-    // The prompt for Groq
-    const prompt = `You are VITA AI, a forensic food safety expert. Analyze these ingredients.
+    // Build prompt with user profile
+    const profile = userProfile || { pregnant: false, infant: false, senior: false, pet: false };
+    
+    const prompt = `You are Truth2Eat Scanner, a forensic food safety expert. Analyze these ingredients.
+
+User Profile:
+- Pregnant: ${profile.pregnant}
+- Infant under 3 in home: ${profile.infant}
+- Senior 65+: ${profile.senior}
+- Pet owner: ${profile.pet}
 
 Ingredients: ${ingredients}
 
-Use your knowledge of EFSA, FDA, WHO, and peer-reviewed research.
-
-For each harmful ingredient, provide:
-- name
-- why it's harmful
-- status in EU, USA, India
-- source citation
+RULES:
+- If Titanium Dioxide (E171) present → RED TIER, 92%, [PDF 10] EFSA 2021
+- If Red 40, Yellow 5, Yellow 6 present → YELLOW TIER, 82%, [PDF 1] Nigg 2012
+- If BPA or Phthalates present → RED TIER, 91%, [PDF 3] Endocrine Society
+- If none → GREEN TIER, 95%, [Truth2Eat Protocol]
 
 Return ONLY valid JSON:
 {
-  "harmful_ingredients": [
-    {"name": "...", "reason": "...", "eu_status": "...", "us_status": "...", "india_status": "...", "source": "..."}
-  ],
-  "safe_ingredients": ["..."],
   "tier": "RED/YELLOW/GREEN",
-  "score": 0,
-  "summary": "..."
+  "confidence": "XX%",
+  "source": "[PDF X]",
+  "rationale": "Brief scientific reason",
+  "display_text": "Short, actionable warning for the user"
 }`;
 
     // Call Groq API
