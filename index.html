@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>VITA AI — Food Safety Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Truth2Eat — Food Safety Scanner</title>
+    <script src="https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -14,269 +15,373 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, sans-serif;
-            background: #f8f9fc;
-            color: #1a2c3e;
+            background: #0a0c0f;
+            color: #eef2f5;
+            padding: 0;
             min-height: 100vh;
         }
 
-        .app-container {
-            max-width: 500px;
+        .container {
+            max-width: 600px;
             margin: 0 auto;
-            background: #ffffff;
-            min-height: 100vh;
-            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            padding: 20px 16px 100px;
         }
 
+        /* Header */
         .header {
-            padding: 20px 20px 12px;
-            background: white;
-            border-bottom: 1px solid #eef2f5;
+            text-align: center;
+            margin-bottom: 20px;
         }
         .header h1 {
             font-size: 28px;
             font-weight: 700;
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            background: linear-gradient(135deg, #ccffcc, #88ffaa);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            letter-spacing: -0.5px;
         }
         .header p {
             font-size: 13px;
-            color: #7f8c8d;
+            color: #7c8b96;
             margin-top: 4px;
         }
 
+        /* Streak & Badge Bar */
         .stats-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 20px;
-            background: #f8f9fc;
-            border-bottom: 1px solid #eef2f5;
+            background: #111418;
+            border-radius: 60px;
+            padding: 8px 16px;
+            margin-bottom: 16px;
+            border: 1px solid #1f2a2c;
         }
         .streak {
-            background: #e8f5e9;
-            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #1e2a2a;
+            padding: 4px 12px;
             border-radius: 40px;
             font-size: 13px;
             font-weight: 600;
-            color: #2e7d32;
+        }
+        .streak span { color: #fbbf24; font-size: 16px; }
+        .badges {
+            display: flex;
+            gap: 8px;
         }
         .badge {
-            background: #fff3e0;
-            padding: 6px 12px;
+            background: #1e2a2a;
             border-radius: 40px;
-            font-size: 12px;
+            padding: 4px 10px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
-        .scan-button {
-            margin: 24px 20px;
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
-            border-radius: 60px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.2s;
-            box-shadow: 0 4px 15px rgba(46,204,113,0.3);
+        /* Guide Overlay */
+        .guide-overlay {
+            background: #1e2a1e;
+            border-radius: 20px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-left: 4px solid #2ecc71;
         }
-        .scan-button:active { transform: scale(0.97); }
-        .scan-button span:first-child { font-size: 32px; display: block; }
-        .scan-button span:last-child { font-size: 18px; font-weight: 700; color: white; margin-top: 8px; display: block; }
+        .guide-icon { font-size: 28px; }
+        .guide-text { font-size: 12px; flex: 1; }
+        .guide-text strong { color: #2ecc71; }
 
+        /* Profile Banner */
         .profile-banner {
-            background: #f8f9fc;
-            margin: 0 20px 20px;
-            padding: 14px 16px;
-            border-radius: 24px;
+            background: #111418;
+            border-radius: 40px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border: 1px solid #eef2f5;
+            border: 1px solid #1f2a2c;
         }
         .profile-tags { display: flex; gap: 8px; flex-wrap: wrap; }
-        .tag { background: #e8f0fe; padding: 4px 12px; border-radius: 40px; font-size: 12px; color: #2ecc71; }
+        .tag { background: #1e2a2a; padding: 4px 12px; border-radius: 40px; font-size: 11px; color: #88ffaa; }
+        .edit-profile { background: none; border: none; color: #2ecc71; font-size: 12px; cursor: pointer; }
 
-        .section-title {
-            padding: 20px 20px 12px;
-            font-size: 16px;
-            font-weight: 600;
-            color: #2c3e50;
+        /* Camera Card */
+        .camera-card {
+            background: #111418;
+            border-radius: 32px;
+            padding: 20px;
+            border: 1px solid #1f2a2c;
+            margin-bottom: 16px;
         }
-        .scans-list {
-            margin: 0 20px;
-            background: white;
-            border-radius: 20px;
-            border: 1px solid #eef2f5;
+        .camera-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 24px;
             overflow: hidden;
         }
-        .scan-item {
+        video, canvas { width: 100%; border-radius: 24px; display: block; }
+        .camera-controls {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 16px;
-            border-bottom: 1px solid #eef2f5;
+            gap: 10px;
+            margin-top: 16px;
+            flex-wrap: wrap;
         }
-        .scan-item:last-child { border-bottom: none; }
-        .scan-name { font-weight: 500; }
-        .scan-score {
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 40px;
-            font-size: 13px;
-        }
-        .score-red { background: #fee2e2; color: #e74c3c; }
-        .score-yellow { background: #fef9e3; color: #f39c12; }
-        .score-green { background: #e8f5e9; color: #2ecc71; }
-
-        .paywall-card {
-            margin: 20px;
-            background: linear-gradient(135deg, #1a2c3e, #0f1a24);
-            border-radius: 28px;
-            padding: 24px;
-            color: white;
-            text-align: center;
-        }
-        .paywall-card h3 { font-size: 20px; margin-bottom: 8px; }
-        .paywall-card p { opacity: 0.8; margin-bottom: 20px; font-size: 13px; }
-        .paywall-button {
-            background: #f39c12;
-            color: #1a2c3e;
+        button {
+            flex: 1;
+            background: #2ecc71;
             border: none;
-            padding: 14px 24px;
+            padding: 12px;
             border-radius: 40px;
-            font-weight: 700;
-            font-size: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #0a0c0f;
             cursor: pointer;
+            transition: all 0.2s;
         }
+        button:active { transform: scale(0.97); }
+        button.secondary { background: #1e2a2a; color: #eef2f5; }
+        textarea {
+            width: 100%;
+            padding: 14px;
+            background: #1a1f25;
+            border: 1px solid #2a3436;
+            border-radius: 24px;
+            color: #eef2f5;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+            margin-top: 16px;
+        }
+        .extracted-box {
+            background: #1a1f25;
+            border-radius: 20px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 11px;
+            font-family: monospace;
+            color: #88ffaa;
+            word-break: break-all;
+        }
+
+        /* Result Card */
         .result-card {
-            margin: 20px;
-            background: white;
-            border-radius: 28px;
+            background: #0f1217;
+            border-radius: 32px;
             padding: 24px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-top: 20px;
+            border: 1px solid #1f2a2c;
         }
-        .result-emoji { font-size: 72px; text-align: center; }
-        .result-score { font-size: 48px; font-weight: 800; text-align: center; margin: 8px 0; }
-        .result-tier { font-size: 20px; font-weight: 600; text-align: center; margin: 8px 0; }
-        .harmful-list {
-            background: #f8f9fc;
+        .massive-emoji { font-size: 72px; text-align: center; }
+        .safety-score {
+            font-size: 48px;
+            font-weight: 800;
+            text-align: center;
+            background: linear-gradient(135deg, #ccffcc, #88ffaa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -1px;
+        }
+        .tier-badge {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 8px 0;
+        }
+        .tier-red { color: #f87171; }
+        .tier-yellow { color: #fbbf24; }
+        .tier-green { color: #4ade80; }
+
+        .ingredient-table {
+            margin: 20px 0;
+            background: #0b0f12;
+            border-radius: 24px;
+            overflow: hidden;
+        }
+        .table-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 2fr;
+            padding: 12px 14px;
+            border-bottom: 1px solid #1e2a2a;
+            font-size: 12px;
+            gap: 4px;
+        }
+        .table-header {
+            background: #1a1f25;
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #8f9eaa;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 8px;
+            margin-right: 6px;
+        }
+        .dot-red { background: #f87171; box-shadow: 0 0 4px #f87171; }
+        .dot-yellow { background: #fbbf24; }
+        .dot-green { background: #4ade80; }
+        .auditor-box {
+            background: #0b0f12;
+            border-left: 4px solid #2ecc71;
             border-radius: 20px;
             padding: 16px;
             margin: 16px 0;
-            max-height: 400px;
-            overflow-y: auto;
+            font-size: 13px;
         }
-        .harmful-item {
-            padding: 12px 0;
-            border-bottom: 1px solid #eef2f5;
+        .country-row {
+            display: flex;
+            gap: 16px;
+            justify-content: space-around;
+            margin: 16px 0;
+            padding: 12px;
+            background: #1a1f25;
+            border-radius: 20px;
         }
-        .harmful-item:last-child { border-bottom: none; }
-        .harmful-name {
-            font-weight: 700;
-            color: #e74c3c;
-            font-size: 15px;
-        }
-        .harmful-reason {
+        .country {
+            text-align: center;
             font-size: 12px;
-            color: #7f8c8d;
-            margin-top: 4px;
-            line-height: 1.4;
         }
-        .harmful-source {
+        .country-flag { font-size: 24px; display: block; }
+        .country-status { font-size: 11px; margin-top: 4px; }
+        .banned { color: #f87171; }
+        .permitted { color: #4ade80; }
+        .source-citation {
             font-size: 10px;
             font-family: monospace;
-            color: #2ecc71;
-            margin-top: 4px;
+            color: #5f7a86;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #1e2a2a;
         }
-        .country-status {
+        .share-btn {
+            background: #2ecc71;
+            width: 100%;
+            padding: 14px;
+            border-radius: 40px;
+            font-weight: 700;
+            margin-top: 12px;
+            font-size: 16px;
+        }
+        .free-counter {
+            text-align: center;
+            font-size: 12px;
+            color: #88ffaa;
+            margin: 12px 0;
+        }
+        .spin-wheel {
+            background: #1e2a1e;
+            border-radius: 60px;
+            padding: 12px 20px;
+            margin-top: 16px;
             display: flex;
-            gap: 12px;
-            margin-top: 6px;
-            font-size: 11px;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
         }
-        .country-status span { padding: 2px 6px; border-radius: 20px; background: #eef2f5; }
-        .eu-banned { background: #fee2e2; color: #e74c3c; }
-        .us-permitted { background: #e8f5e9; color: #2ecc71; }
+        .spin-wheel span:first-child { font-size: 24px; }
         .loading {
             text-align: center;
-            padding: 40px;
+            padding: 20px;
             color: #2ecc71;
-            font-size: 14px;
         }
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            border-radius: 48px;
-            padding: 32px;
-            text-align: center;
-            max-width: 300px;
-            width: 80%;
-        }
-        .wheel { font-size: 64px; margin: 20px 0; animation: spin 0.5s ease-out; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .hidden { display: none; }
-        .footer { padding: 20px; text-align: center; font-size: 11px; color: #95a5a6; }
-        textarea {
-            width: 100%;
-            padding: 16px;
-            border: 1px solid #eef2f5;
-            border-radius: 20px;
-            margin: 16px 20px 0;
-            width: calc(100% - 40px);
-            font-family: monospace;
-            font-size: 13px;
-            resize: vertical;
+        .legal-footer {
+            font-size: 9px;
+            text-align: center;
+            color: #4a5f6b;
+            margin-top: 24px;
+            padding-bottom: 20px;
         }
-        button { cursor: pointer; }
+        .leaderboard {
+            background: #111418;
+            border-radius: 24px;
+            padding: 16px;
+            margin-top: 20px;
+            border: 1px solid #1f2a2c;
+        }
+        .leaderboard h4 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #2ecc71;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 6px 0;
+            border-bottom: 1px solid #1e2a2a;
+        }
     </style>
 </head>
 <body>
-<div class="app-container">
+<div class="container">
     <div class="header">
-        <h1>🔬 VITA AI</h1>
-        <p>AI-powered food safety · Know what's inside</p>
+        <h1>🔬 Truth2Eat</h1>
+        <p>Forensic Food Scanner · Know What's Inside</p>
     </div>
 
+    <!-- Stats Bar: Streak + Badges -->
     <div class="stats-bar">
         <div class="streak"><span>🔥</span> <span id="streakCount">0</span> day streak</div>
-        <div class="badge" id="badgeText">🕵️ Detective</div>
+        <div class="badges" id="badgeContainer"></div>
     </div>
 
-    <div id="profileBanner" class="profile-banner">
-        <div class="profile-tags" id="profileTags"></div>
-        <button id="editProfileBtn" style="background:none; border:none; color:#2ecc71;">✏️</button>
+    <!-- Guide -->
+    <div class="guide-overlay">
+        <div class="guide-icon">📋</div>
+        <div class="guide-text"><strong>Point at INGREDIENT LIST</strong><br>Look for "INGREDIENTS:" on back/side. Not the nutrition facts.</div>
     </div>
 
-    <div class="scan-button" id="scanBtn">
-        <span>📸</span>
-        <span>SCAN LABEL</span>
+    <div id="profileBanner" class="profile-banner"></div>
+
+    <div class="camera-card">
+        <div class="camera-container">
+            <video id="video" autoplay playsinline muted></video>
+            <canvas id="canvas" style="display:none;"></canvas>
+        </div>
+        <div class="camera-controls">
+            <button id="captureBtn">📸 Scan Label</button>
+            <button id="toggleCameraBtn" class="secondary">🔄 Switch</button>
+            <button id="flashlightBtn" class="secondary">💡 Flash</button>
+            <button id="galleryBtn" class="secondary">🖼️ Gallery</button>
+        </div>
+        <textarea id="ingredientText" rows="2" placeholder="Or paste ingredient list..."></textarea>
+        <button id="manualScanBtn" class="secondary" style="margin-top:8px;">🔍 Analyze Text</button>
+        <div id="extractedPreview" class="extracted-box hidden"></div>
     </div>
 
-    <textarea id="ingredientsInput" rows="3" placeholder="Or paste ingredient list here...&#10;Example: titanium dioxide, red 40, sugar, BPA lining, potassium bromate, high fructose corn syrup"></textarea>
-    <button id="analyzeBtn" style="margin: 16px 20px 0; background: #2ecc71; border: none; padding: 14px; border-radius: 40px; font-weight: 700; width: calc(100% - 40px);">🔍 ANALYZE WITH AI</button>
-
-    <div class="section-title">📋 RECENT SCANS</div>
-    <div id="scansList" class="scans-list">
-        <div class="scan-item" style="justify-content:center; color:#95a5a6;">No scans yet. Scan your first food!</div>
-    </div>
-
-    <div id="paywallContainer" class="hidden"></div>
+    <div id="freeCounter" class="free-counter"></div>
     <div id="resultContainer" class="hidden"></div>
 
-    <div class="footer">
-        ⚖️ AI analysis based on EFSA, FDA, WHO, and peer-reviewed research. Not medical advice.<br>
-        🇪🇺 🇺🇸 🇮🇳 — Regulatory status varies by country.
+    <!-- Spin Wheel (after scan) -->
+    <div id="spinWheel" class="spin-wheel hidden" onclick="spinWheel()">
+        <span>🎡</span>
+        <span>SPIN FOR REWARDS</span>
+        <span>🎁</span>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="leaderboard" class="leaderboard hidden">
+        <h4>🏆 TOP DETECTIVES</h4>
+        <div id="leaderboardList"></div>
+    </div>
+
+    <div class="legal-footer">
+        ⚖️ Regulatory comparisons based on EFSA, FDA, FSSAI. Not medical advice.<br>
+        🇪🇺 EU banned · 🇺🇸 Permitted · 🇮🇳 Permitted — You decide.<br>
+        📍 truth2eat.netlify.app
     </div>
 </div>
 
@@ -284,253 +389,372 @@
     // =============================================
     // APP STATE (LocalStorage)
     // =============================================
-    let freeScansLeft = parseInt(localStorage.getItem('vita_free_scans') || '5');
-    let scansTotal = parseInt(localStorage.getItem('vita_scans_total') || '0');
-    let streak = parseInt(localStorage.getItem('vita_streak') || '0');
-    let lastScanDate = localStorage.getItem('vita_last_scan') || null;
-    let userProfile = JSON.parse(localStorage.getItem('vita_profile') || '{"pregnant":false,"infant":false,"senior":false,"pet":false}');
-    let userCountry = localStorage.getItem('vita_country') || 'US';
-    let isPremium = localStorage.getItem('vita_premium') === 'true';
-    let recentScans = JSON.parse(localStorage.getItem('vita_recent_scans') || '[]');
+    let freeScansLeft = parseInt(localStorage.getItem('truth2eat_free_scans') || '10');
+    let userProfile = JSON.parse(localStorage.getItem('truth2eat_profile') || 'null');
+    let userEmail = localStorage.getItem('truth2eat_email') || null;
+    let userCountry = localStorage.getItem('truth2eat_country') || 'US';
+    let streak = parseInt(localStorage.getItem('truth2eat_streak') || '0');
+    let lastScanDate = localStorage.getItem('truth2eat_last_scan') || '';
+    let badges = JSON.parse(localStorage.getItem('truth2eat_badges') || '[]');
+    let scansTotal = parseInt(localStorage.getItem('truth2eat_scans_total') || '0');
+    let isPremium = localStorage.getItem('truth2eat_premium') === 'true';
+    let leaderboard = JSON.parse(localStorage.getItem('truth2eat_leaderboard') || '[]');
 
+    // Update streak
     function updateStreak() {
         const today = new Date().toDateString();
         if (lastScanDate !== today) {
-            if (lastScanDate) {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                if (lastScanDate === yesterday.toDateString()) streak++;
-                else streak = 1;
-            } else streak = 1;
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            if (lastScanDate === yesterday.toDateString()) {
+                streak++;
+            } else {
+                streak = 1;
+            }
             lastScanDate = today;
-            localStorage.setItem('vita_streak', streak);
-            localStorage.setItem('vita_last_scan', lastScanDate);
+            localStorage.setItem('truth2eat_streak', streak);
+            localStorage.setItem('truth2eat_last_scan', lastScanDate);
         }
         document.getElementById('streakCount').innerText = streak;
+        if (streak >= 7 && !badges.includes('7day')) {
+            badges.push('7day');
+            localStorage.setItem('truth2eat_badges', JSON.stringify(badges));
+            alert("🎉 Badge unlocked: 7-Day Streak!");
+        }
+        updateBadges();
     }
 
-    function updateUI() {
-        const tags = [];
-        if (userProfile.pregnant) tags.push('🤰 Pregnant');
-        if (userProfile.infant) tags.push('🍼 Infant');
-        if (userProfile.senior) tags.push('👴 Senior');
-        if (userProfile.pet) tags.push('🐾 Pet');
-        if (tags.length === 0) tags.push('👤 Adult');
-        document.getElementById('profileTags').innerHTML = tags.map(t => `<span class="tag">${t}</span>`).join('');
-        document.getElementById('badgeText').innerText = isPremium ? '✨ Premium' : (scansTotal > 10 ? '🕵️ Truth Seeker' : '🔍 Detective');
-
-        const scansContainer = document.getElementById('scansList');
-        if (recentScans.length === 0) {
-            scansContainer.innerHTML = '<div class="scan-item" style="justify-content:center; color:#95a5a6;">No scans yet. Scan your first food!</div>';
-        } else {
-            scansContainer.innerHTML = recentScans.slice(0,5).map(s => `
-                <div class="scan-item">
-                    <span class="scan-name">${s.name || 'Product'}</span>
-                    <span class="scan-score score-${s.score < 5 ? 'red' : (s.score < 8 ? 'yellow' : 'green')}">${s.score}/10</span>
-                </div>
-            `).join('');
+    function updateBadges() {
+        const container = document.getElementById('badgeContainer');
+        container.innerHTML = '';
+        if (badges.includes('7day')) container.innerHTML += '<div class="badge">🔥 7-Day</div>';
+        if (badges.includes('truth_seeker')) container.innerHTML += '<div class="badge">🕵️ Truth Seeker</div>';
+        if (badges.includes('guardian')) container.innerHTML += '<div class="badge">🛡️ Guardian</div>';
+        if (scansTotal >= 50 && !badges.includes('scientist')) {
+            badges.push('scientist');
+            localStorage.setItem('truth2eat_badges', JSON.stringify(badges));
+            container.innerHTML += '<div class="badge">🧪 Scientist</div>';
+        } else if (badges.includes('scientist')) {
+            container.innerHTML += '<div class="badge">🧪 Scientist</div>';
         }
-
-        const paywallDiv = document.getElementById('paywallContainer');
-        if (!isPremium && freeScansLeft <= 0) {
-            paywallDiv.classList.remove('hidden');
-            paywallDiv.innerHTML = `
-                <div class="paywall-card">
-                    <h3>🔒 Want to see the truth?</h3>
-                    <p>You've used your free scans. Subscribe to unlock:<br>
-                    ❌ Full list of harmful ingredients<br>
-                    📜 Scientific reasons with citations<br>
-                    🌍 Country-specific bans (EU vs US)<br>
-                    ♾️ Unlimited scans</p>
-                    <button class="paywall-button" id="subscribeBtn">Subscribe $4.99/month</button>
-                </div>
-            `;
-            document.getElementById('subscribeBtn')?.addEventListener('click', () => {
-                alert("🔓 Premium activated! (Demo)\nIn production, Stripe would open.");
-                isPremium = true;
-                freeScansLeft = 999;
-                localStorage.setItem('vita_premium', 'true');
-                localStorage.setItem('vita_free_scans', freeScansLeft);
-                updateUI();
-            });
-        } else {
-            paywallDiv.classList.add('hidden');
-        }
-        updateStreak();
     }
 
-    function saveScan(productName, score) {
-        recentScans.unshift({ name: productName.substring(0, 30), score: score, date: new Date().toISOString() });
-        recentScans = recentScans.slice(0, 10);
-        localStorage.setItem('vita_recent_scans', JSON.stringify(recentScans));
-        scansTotal++;
-        localStorage.setItem('vita_scans_total', scansTotal);
-        updateUI();
-    }
-
-    // =============================================
-    // GROQ AI ANALYSIS via Netlify Function (Secure)
-    // =============================================
-    async function analyzeWithGroq(ingredients) {
-        const response = await fetch('/.netlify/functions/groq', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ingredients })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || `API error: ${response.status}`);
-        }
-        
-        return await response.json();
-    }
-
-    async function performAnalysis() {
-        const ingredients = document.getElementById('ingredientsInput').value.trim();
-        if (!ingredients) {
-            alert("Please paste ingredients or use camera to scan label");
-            return;
-        }
-
-        if (!isPremium && freeScansLeft <= 0) {
-            alert("You've used all free scans. Subscribe to continue!");
-            updateUI();
-            return;
-        }
-
-        const resultDiv = document.getElementById('resultContainer');
-        resultDiv.classList.remove('hidden');
-        resultDiv.innerHTML = `<div class="loading">🔬 VITA AI analyzing ingredients...<br>Using Groq's food safety knowledge (EFSA, FDA, WHO)</div>`;
-        document.getElementById('paywallContainer').classList.add('hidden');
-
-        try {
-            const analysis = await analyzeWithGroq(ingredients);
-
-            if (!isPremium) {
-                freeScansLeft--;
-                localStorage.setItem('vita_free_scans', freeScansLeft);
-            }
-
-            saveScan(ingredients.substring(0, 30), analysis.score);
-
-            const emoji = analysis.score <= 3 ? '🤮' : (analysis.score <= 6 ? '⚠️' : '😍');
-            const tierColor = analysis.tier === 'RED' ? '#e74c3c' : (analysis.tier === 'YELLOW' ? '#f39c12' : '#2ecc71');
-
-            let harmfulHtml = '';
-            if (analysis.harmful_ingredients && analysis.harmful_ingredients.length > 0) {
-                harmfulHtml = `<div class="harmful-list"><strong>⚠️ HARMFUL INGREDIENTS DETECTED:</strong><br><br>`;
-                for (const h of analysis.harmful_ingredients) {
-                    harmfulHtml += `
-                        <div class="harmful-item">
-                            <div class="harmful-name">❌ ${h.name}</div>
-                            <div class="harmful-reason">📜 ${h.reason}</div>
-                            <div class="country-status">
-                                <span class="${h.eu_status?.includes('BANNED') ? 'eu-banned' : ''}">🇪🇺 EU: ${h.eu_status || 'Check'}</span>
-                                <span>🇺🇸 US: ${h.us_status || 'Permitted'}</span>
-                                <span>🇮🇳 India: ${h.india_status || 'Permitted'}</span>
-                            </div>
-                            <div class="harmful-source">📄 Source: ${h.source || 'EFSA/FDA'}</div>
-                        </div>
-                    `;
-                }
-                harmfulHtml += `</div>`;
+    function updateLeaderboard() {
+        if (!isPremium) return;
+        if (userEmail) {
+            const existing = leaderboard.find(l => l.email === userEmail);
+            if (existing) {
+                existing.scans = scansTotal;
             } else {
-                harmfulHtml = `<div class="harmful-list"><strong>✅ NO HARMFUL INGREDIENTS DETECTED</strong><br><br>This product appears to contain only ingredients with no known safety concerns.</div>`;
+                leaderboard.push({ email: userEmail.substring(0, 10) + '...', scans: scansTotal });
             }
-
-            resultDiv.innerHTML = `
-                <div class="result-card">
-                    <div class="result-emoji">${emoji}</div>
-                    <div class="result-score">${analysis.score} / 10</div>
-                    <div class="result-tier" style="color: ${tierColor}">${analysis.tier} TIER</div>
-                    ${harmfulHtml}
-                    <div style="margin-top: 16px; padding: 12px; background: #f8f9fc; border-radius: 16px;">
-                        <strong>🔬 VITA SUMMARY</strong><br>
-                        ${analysis.summary}
-                    </div>
-                    <button id="shareResultBtn" style="margin-top: 20px; width: 100%; background: #2ecc71; border: none; padding: 14px; border-radius: 40px; font-weight: 700;">📢 SHARE THE TRUTH</button>
-                </div>
-            `;
-
-            document.getElementById('shareResultBtn')?.addEventListener('click', () => {
-                const shareText = `VITA AI: ${analysis.tier} tier (${analysis.score}/10). ${analysis.summary}`;
-                if (navigator.share) navigator.share({ title: 'VITA AI Safety', text: shareText });
-                else navigator.clipboard.writeText(shareText);
-                if (!isPremium) {
-                    freeScansLeft = Math.min(freeScansLeft + 2, 15);
-                    localStorage.setItem('vita_free_scans', freeScansLeft);
-                    updateUI();
-                    alert("+2 free scans for sharing!");
-                }
-            });
-
-            setTimeout(() => showSpinWheel(), 500);
-
-        } catch (error) {
-            console.error(error);
-            resultDiv.innerHTML = `<div class="result-card"><div class="loading">❌ Error: ${error.message}<br>Check API key and try again.</div></div>`;
+            leaderboard.sort((a,b) => b.scans - a.scans);
+            leaderboard = leaderboard.slice(0, 10);
+            localStorage.setItem('truth2eat_leaderboard', JSON.stringify(leaderboard));
+        }
+        const leaderboardDiv = document.getElementById('leaderboardList');
+        if (leaderboardDiv) {
+            leaderboardDiv.innerHTML = leaderboard.map((l, i) => `<div class="leaderboard-item"><span>${i+1}. ${l.email}</span><span>${l.scans} scans</span></div>`).join('');
         }
     }
 
-    function showSpinWheel() {
-        const prizes = ['+1 free scan', '+2 free scans', '10% off premium', 'Share for 5 scans', 'Try again', '🎉 +1 month free!'];
-        const prize = prizes[Math.floor(Math.random() * prizes.length)];
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <h3>🎡 SPIN THE WHEEL</h3>
-                <div class="wheel">🎡</div>
-                <p>You won:<br><strong>${prize}</strong></p>
-                <button id="closeSpinBtn" style="margin-top:16px; padding:8px 24px; border-radius:40px; background:#2ecc71; border:none;">OK</button>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        if (prize.includes('free scan')) {
-            const bonus = parseInt(prize.match(/\d+/)?.[0] || 1);
-            freeScansLeft += bonus;
-            localStorage.setItem('vita_free_scans', freeScansLeft);
-            updateUI();
-        } else if (prize.includes('month free') && !isPremium) {
-            isPremium = true;
-            freeScansLeft = 999;
-            localStorage.setItem('vita_premium', 'true');
-            localStorage.setItem('vita_free_scans', freeScansLeft);
-            updateUI();
-            alert("🎉 You won 1 month free premium!");
-        }
-        document.getElementById('closeSpinBtn')?.addEventListener('click', () => modal.remove());
-    }
-
-    // Event Listeners
-    document.getElementById('analyzeBtn').addEventListener('click', performAnalysis);
-    document.getElementById('scanBtn').addEventListener('click', () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.capture = 'environment';
-        input.onchange = async (e) => {
-            if (!e.target.files[0]) return;
-            alert("📸 For now, please paste the ingredients you see on the label.\nCamera + OCR coming soon!");
-        };
-        input.click();
-    });
-    document.getElementById('editProfileBtn').addEventListener('click', () => {
-        userProfile = {
+    function showProfileSetup() {
+        const profile = userProfile || { pregnant: false, infant: false, senior: false, pet: false };
+        const newProfile = {
             pregnant: confirm("Are you pregnant or trying to conceive?"),
             infant: confirm("Do you have an infant/toddler under 3 in your home?"),
             senior: confirm("Are you 65 years or older?"),
             pet: confirm("Do you have a dog or cat?")
         };
-        userCountry = prompt("Select your country (USA, EU, India, UK, Canada):", userCountry);
-        localStorage.setItem('vita_profile', JSON.stringify(userProfile));
-        localStorage.setItem('vita_country', userCountry);
-        updateUI();
-    });
+        localStorage.setItem('truth2eat_profile', JSON.stringify(newProfile));
+        userProfile = newProfile;
+        updateProfileBanner();
+    }
 
-    updateUI();
+    function updateProfileBanner() {
+        const banner = document.getElementById('profileBanner');
+        if (!userProfile) {
+            banner.innerHTML = `<div style="flex:1;">👤 Set up profile for personalized results</div><button class="edit-profile" onclick="showProfileSetup()">Setup</button>`;
+        } else {
+            let tags = [];
+            if (userProfile.pregnant) tags.push('🤰 Pregnant');
+            if (userProfile.infant) tags.push('🍼 Infant');
+            if (userProfile.senior) tags.push('👴 Senior');
+            if (userProfile.pet) tags.push('🐾 Pet');
+            if (tags.length === 0) tags.push('👤 Adult');
+            banner.innerHTML = `<div class="profile-tags">${tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+            <div style="display:flex; gap:8px;"><button class="edit-profile" onclick="showCountrySetup()">🌍 ${userCountry}</button><button class="edit-profile" onclick="showProfileSetup()">✏️</button></div>`;
+        }
+        updateFreeCounter();
+    }
+
+    function showCountrySetup() {
+        const country = prompt("Select your country: USA, EU, India, UK, Canada", userCountry);
+        if (country && ['USA','EU','India','UK','Canada'].some(c => c.toLowerCase() === country.toLowerCase())) {
+            userCountry = country.toUpperCase();
+            localStorage.setItem('truth2eat_country', userCountry);
+            updateProfileBanner();
+        } else {
+            alert("Country not recognized. Using default.");
+        }
+    }
+
+    function updateFreeCounter() {
+        const remaining = isPremium ? '∞' : freeScansLeft;
+        document.getElementById('freeCounter').innerHTML = isPremium ? '✨ PREMIUM · Unlimited scans' : `✅ ${freeScansLeft} free scans left · Share to earn more`;
+    }
+
+    function useScan() {
+        if (isPremium) return true;
+        if (freeScansLeft > 0) {
+            freeScansLeft--;
+            localStorage.setItem('truth2eat_free_scans', freeScansLeft);
+            updateFreeCounter();
+            return true;
+        } else {
+            showPaywall();
+            return false;
+        }
+    }
+
+    function showPaywall() {
+        alert("🔒 Free scans used. Subscribe to unlock: harmful ingredients, scientific reasons, unlimited scans.");
+        if (confirm("Subscribe for $4.99/month? (Demo — in production, Stripe would open)")) {
+            isPremium = true;
+            localStorage.setItem('truth2eat_premium', 'true');
+            updateFreeCounter();
+            alert("✨ Premium activated! You now see full ingredient risks.");
+        }
+    }
+
+    function shareResult(score, productName) {
+        const msg = `Truth2Eat Scanner: ${productName || "Product"} scored ${score}/10. Scan your food — know what's inside. truth2eat.netlify.app`;
+        if (navigator.share) navigator.share({ title: 'Truth2Eat Safety', text: msg });
+        else navigator.clipboard.writeText(msg);
+        if (!isPremium) {
+            freeScansLeft = Math.min(freeScansLeft + 2, 15);
+            localStorage.setItem('truth2eat_free_scans', freeScansLeft);
+            updateFreeCounter();
+            alert("+2 free scans for sharing!");
+        }
+    }
+
+    function spinWheel() {
+        const prizes = ['+1 free scan', '+2 free scans', '10% off premium', 'Share for 5 scans', 'Try again', '🎉 +1 month free!'];
+        const prize = prizes[Math.floor(Math.random() * prizes.length)];
+        alert(`🎡 You won: ${prize}`);
+        if (prize.includes('free scan')) {
+            const bonus = parseInt(prize.match(/\d+/)?.[0] || 1);
+            freeScansLeft += bonus;
+            localStorage.setItem('truth2eat_free_scans', freeScansLeft);
+            updateFreeCounter();
+        } else if (prize.includes('month free') && !isPremium) {
+            isPremium = true;
+            localStorage.setItem('truth2eat_premium', 'true');
+            updateFreeCounter();
+            alert("✨ Premium unlocked for 1 month!");
+        }
+    }
+
+    // =============================================
+    // INGREDIENT EXTRACTION
+    // =============================================
+    function extractIngredientsFromOCR(rawText) {
+        const lower = rawText.toLowerCase();
+        let ingredientsStart = lower.indexOf('ingredients:');
+        if (ingredientsStart === -1) ingredientsStart = lower.indexOf('ingredient list:');
+        if (ingredientsStart === -1) ingredientsStart = lower.indexOf('contains:');
+        
+        let ingredientsText = "";
+        if (ingredientsStart !== -1) {
+            let endIdx = rawText.indexOf('\n', ingredientsStart);
+            if (endIdx === -1) endIdx = rawText.indexOf('.', ingredientsStart);
+            if (endIdx === -1) endIdx = rawText.length;
+            ingredientsText = rawText.substring(ingredientsStart + (lower.includes('ingredients:') ? 12 : 0), endIdx);
+        } else {
+            const lines = rawText.split('\n');
+            let filtered = [];
+            for (const line of lines) {
+                if (!/\d+%|\d+g|\d+kcal|energy|protein|carbohydrate|fat|sugar|sodium/i.test(line) && line.trim().length > 3) {
+                    filtered.push(line.trim());
+                }
+            }
+            ingredientsText = filtered.join(', ').substring(0, 500);
+        }
+        return ingredientsText.replace(/\n/g, ', ').replace(/\s+/g, ' ').replace(/[0-9]+%/g, '').replace(/[0-9]+g/g, '').substring(0, 500);
+    }
+
+    // =============================================
+    // ANALYSIS VIA SECURE NETLIFY FUNCTION
+    // =============================================
+    async function analyzeIngredients(ingredientText) {
+        if (!ingredientText.trim()) { alert("Please paste or scan ingredients"); return; }
+        if (!useScan()) return;
+
+        updateStreak();
+        scansTotal++;
+        localStorage.setItem('truth2eat_scans_total', scansTotal);
+        updateLeaderboard();
+
+        const resultDiv = document.getElementById('resultContainer');
+        resultDiv.classList.remove('hidden');
+        resultDiv.innerHTML = `<div class="result-card"><div class="loading">🔬 Analyzing with Truth2Eat AI...</div></div>`;
+        document.getElementById('spinWheel').classList.add('hidden');
+
+        try {
+            // Call secure Netlify Function (API key hidden)
+            const response = await fetch('/.netlify/functions/groq', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    ingredients: ingredientText,
+                    userProfile: userProfile
+                })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || `API error: ${response.status}`);
+            }
+            
+            const analysis = await response.json();
+            renderResult(analysis, ingredientText);
+            
+        } catch(err) {
+            resultDiv.innerHTML = `<div class="result-card"><div class="loading">❌ Error: ${err.message}<br>Check connection</div></div>`;
+        }
+    }
+
+    function renderResult(result, ingredientText) {
+        const tier = result.tier || "YELLOW";
+        const confidence = result.confidence || "85%";
+        const source = result.source || "[Truth2Eat Protocol]";
+        const rationale = result.rationale || "Based on ingredient analysis";
+        const displayText = result.display_text || "Exercise caution";
+
+        const emoji = tier === "RED" ? "🤮" : (tier === "YELLOW" ? "⚠️" : "😍");
+        const score = tier === "RED" ? "3.2" : (tier === "YELLOW" ? "6.5" : "9.1");
+
+        const ingredientsList = ingredientText.split(',').slice(0,6).map(i => i.trim());
+        let tableRows = '';
+        ingredientsList.forEach(ing => {
+            const lower = ing.toLowerCase();
+            let status = 'GREEN', dot = 'dot-green', risk = 'No significant risk';
+            if (lower.includes('titanium') || lower.includes('e171')) {
+                status = 'RED'; dot = 'dot-red'; risk = 'Banned in EU (EFSA 2021) · Genotoxicity';
+            } else if (lower.includes('red 40') || lower.includes('yellow 5') || lower.includes('yellow 6')) {
+                status = 'YELLOW'; dot = 'dot-yellow'; risk = 'May affect activity/attention (Nigg 2012)';
+            } else if (lower.includes('bpa') || lower.includes('phthalate')) {
+                status = 'RED'; dot = 'dot-red'; risk = 'Endocrine disruptor · Endocrine Society';
+            }
+            tableRows += `<div class="table-row"><span>${ing}</span><span><span class="status-dot ${dot}"></span> ${status}</span><span>${risk}</span></div>`;
+        });
+
+        document.getElementById('resultContainer').innerHTML = `
+            <div class="result-card">
+                <div class="massive-emoji">${emoji}</div>
+                <div class="safety-score">${score} / 10</div>
+                <div class="tier-badge tier-${tier === 'RED' ? 'red' : (tier === 'YELLOW' ? 'yellow' : 'green')}">${tier} TIER</div>
+                <div class="ingredient-table">
+                    <div class="table-row table-header"><span>🍽️ INGREDIENT</span><span>🚦 STATUS</span><span>📜 RISK / SOURCE</span></div>
+                    ${tableRows}
+                </div>
+                <div class="auditor-box">
+                    <div style="font-weight:700; color:#2ecc71;">🔬 SCIENTIFIC AUDITOR</div>
+                    <div>${rationale}</div>
+                    <div class="source-citation">📄 ${source}</div>
+                </div>
+                <div class="country-row">
+                    <div class="country"><span class="country-flag">🇪🇺</span><div class="country-status">${ingredientText.toLowerCase().includes('titanium') ? 'BANNED' : 'Permitted'}</div></div>
+                    <div class="country"><span class="country-flag">🇺🇸</span><div class="country-status">Permitted</div></div>
+                    <div class="country"><span class="country-flag">🇮🇳</span><div class="country-status">Permitted</div></div>
+                </div>
+                <button class="share-btn" onclick="shareResult('${score}', '${displayText}')">📢 SHARE THE TRUTH</button>
+            </div>
+        `;
+        document.getElementById('spinWheel').classList.remove('hidden');
+    }
+
+    // =============================================
+    // CAMERA & OCR
+    // =============================================
+    let stream = null;
+    let facingMode = 'environment';
+    let torch = false;
+
+    async function startCamera() {
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: facingMode } } });
+            document.getElementById('video').srcObject = stream;
+        } catch (err) {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('video').srcObject = stream;
+        }
+    }
+
+    async function captureLabel() {
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        const resultDiv = document.getElementById('resultContainer');
+        resultDiv.classList.remove('hidden');
+        resultDiv.innerHTML = `<div class="result-card"><div class="loading">🔍 Extracting text from label...</div></div>`;
+        
+        const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+        const extracted = extractIngredientsFromOCR(text);
+        document.getElementById('ingredientText').value = extracted;
+        const preview = document.getElementById('extractedPreview');
+        preview.classList.remove('hidden');
+        preview.innerHTML = `📋 Extracted: ${extracted.substring(0, 100)}...`;
+        analyzeIngredients(extracted);
+    }
+
+    document.getElementById('captureBtn').onclick = captureLabel;
+    document.getElementById('toggleCameraBtn').onclick = () => { facingMode = facingMode === 'environment' ? 'user' : 'environment'; startCamera(); };
+    document.getElementById('flashlightBtn').onclick = async () => {
+        if (!stream) return;
+        const track = stream.getVideoTracks()[0];
+        const caps = track.getCapabilities();
+        if (caps.torch) {
+            torch = !torch;
+            await track.applyConstraints({ advanced: [{ torch }] });
+        } else alert("Flashlight not available");
+    };
+    document.getElementById('manualScanBtn').onclick = () => analyzeIngredients(document.getElementById('ingredientText').value);
+    document.getElementById('galleryBtn').onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = async () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+                const extracted = extractIngredientsFromOCR(text);
+                document.getElementById('ingredientText').value = extracted;
+                analyzeIngredients(extracted);
+            };
+        };
+        input.click();
+    };
+
+    // Initialize
+    if (!userProfile) showProfileSetup();
+    else updateProfileBanner();
+    if (!userCountry) showCountrySetup();
+    startCamera();
+    updateStreak();
+    updateBadges();
+    updateLeaderboard();
 </script>
 </body>
 </html>
